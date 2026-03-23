@@ -2,6 +2,11 @@ import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, copyFileSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+
+// Point Playwright to bundled Chromium in packaged app
+if (!is.dev) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = join(process.resourcesPath, 'playwright-browsers')
+}
 import { saveUserInfo, saveLeads, getSheetUrl, credentialsExist } from './services/sheetsService'
 import { generateSearchQueries } from './services/nlpService'
 import { scrapeAllQueries } from './services/scraperService'

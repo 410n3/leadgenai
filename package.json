@@ -51,6 +51,10 @@
         "filter": [
           "*.json"
         ]
+      },
+      {
+        "from": "playwright-browsers",
+        "to": "playwright-browsers"
       }
     ],
     "mac": {
