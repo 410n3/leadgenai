@@ -1,5 +1,6 @@
 import { normalizeCompanyName, resolveLinkedInCompanyName } from './nlpService.js'
 import { searchLinkedInProfiles } from './linkedinGoogleSearchService.js'
+import { searchLinkedInProfilesApify } from './apifyService.js'
 
 // Resolve a list of company names to their LinkedIn brand names via AI
 async function resolveCompanyNames(names, emit) {
@@ -21,6 +22,7 @@ function normalizeProfile(p) {
     name:        p.name || '',
     title:       p.title || '',
     linkedinUrl: p.linkedinUrl || '',
+    email:       p.email || '',
     location:    p.location || '',
     company:     p.company || '',
     verified:    true
@@ -54,7 +56,7 @@ function mapProfilesToLeads(leads, companyProfileMap, resolvedNamesMap = {}) {
 }
 
 export async function runLinkedInContactScraper(inputs, onProgress) {
-  const { leads, jobTitles, location } = inputs
+  const { leads, jobTitles, location, useApify = false, maxItemsPerCompany = 3 } = inputs
   if (!leads || leads.length === 0) return []
 
   const emit = (msg) => onProgress({ status: msg, message: msg })
@@ -67,15 +69,17 @@ export async function runLinkedInContactScraper(inputs, onProgress) {
   const resolvedNamesMap = {}
   rawCompanyNames.forEach((n, i) => { resolvedNamesMap[n] = resolvedNames[i] })
 
-  emit('Starting Google LinkedIn X-Ray search...')
+  emit(`Starting ${useApify ? 'Apify' : 'Google LinkedIn X-Ray'} search...`)
   const searchInputs = resolvedNames.map(company => ({
     company,
     jobTitles: jobTitleList,
     location: locationStr,
-    maxResults: 5
+    maxResults: maxItemsPerCompany
   }))
 
-  const results = await searchLinkedInProfiles(searchInputs, emit)
+  const results = useApify 
+    ? await searchLinkedInProfilesApify(searchInputs, emit)
+    : await searchLinkedInProfiles(searchInputs, emit)
 
   const companyProfileMap = {}
   for (const { company, profiles } of results) {
@@ -88,7 +92,7 @@ export async function runLinkedInContactScraper(inputs, onProgress) {
 }
 
 export async function runLinkedInProfileSearchPerCompany(inputs, onProgress) {
-  const { leads, jobTitles, location, maxItemsPerCompany = 5 } = inputs
+  const { leads, jobTitles, location, maxItemsPerCompany = 5, useApify = false } = inputs
   if (!leads || leads.length === 0) return []
 
   const emit = (msg) => onProgress({ status: msg, message: msg })
@@ -106,12 +110,16 @@ export async function runLinkedInProfileSearchPerCompany(inputs, onProgress) {
     if (company !== lead.name) emit(`  → LinkedIn name: "${company}"`)
 
     try {
-      const results = await searchLinkedInProfiles([{
+      const searchInputs = [{
         company,
         jobTitles: jobTitleList,
         location: locationStr,
         maxResults: maxItemsPerCompany
-      }], emit)
+      }]
+
+      const results = useApify
+        ? await searchLinkedInProfilesApify(searchInputs, emit)
+        : await searchLinkedInProfiles(searchInputs, emit)
 
       const profiles = (results[0]?.profiles || []).map(normalizeProfile)
       emit(`Found ${profiles.length} profiles for ${company}`)

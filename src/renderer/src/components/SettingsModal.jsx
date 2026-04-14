@@ -6,6 +6,10 @@ export default function SettingsModal({ onClose }) {
   const [apiSaving, setApiSaving] = useState(false)
   const [apiError, setApiError] = useState('')
 
+  const [apifyKey, setApifyKey] = useState('')
+  const [apifySaved, setApifySaved] = useState(false)
+  const [apifySaving, setApifySaving] = useState(false)
+
 
 
   const [useLocalMl, setUseLocalMl] = useState(false)
@@ -27,6 +31,7 @@ export default function SettingsModal({ onClose }) {
     window.api.checkCredentials().then(info => {
       setCredStatus(info.credentialsExist ? 'ok' : 'missing')
       if (info.hasApiKey) setApiKey('••••••••••••••••••••••')
+      if (info.hasApifyKey) setApifyKey('••••••••••••••••••••••')
       if (typeof info.useLocalMl === 'boolean') setUseLocalMl(info.useLocalMl)
       if (info.localMlUrl) setLocalMlUrl(info.localMlUrl)
       if (info.localMlModel) setLocalMlModel(info.localMlModel)
@@ -51,6 +56,18 @@ export default function SettingsModal({ onClose }) {
     } finally {
       setApiSaving(false)
     }
+  }
+
+  const handleSaveApifyKey = async () => {
+    const key = apifyKey.trim()
+    if (!key || key.startsWith('•')) return
+    setApifySaving(true)
+    try {
+      await window.api.saveEnv({ apifyKey: key })
+      setApifySaved(true)
+      setTimeout(() => setApifySaved(false), 3000)
+    } catch (_) { }
+    setApifySaving(false)
   }
 
 
@@ -167,6 +184,48 @@ export default function SettingsModal({ onClose }) {
                 onClick={() => window.api.openExternal('https://build.nvidia.com/')}
               >
                 build.nvidia.com
+              </button>
+            </p>
+          </div>
+
+          <div className="border-t border-slate-700 my-4" />
+
+          {/* Apify API Key */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className={`w-2 h-2 rounded-full ${apifyKey.startsWith('•') ? 'bg-green-400' : 'bg-yellow-400'}`} />
+              <h3 className="font-semibold text-white">Apify API Key</h3>
+              <span className="text-xs text-slate-500 ml-auto">LinkedIn Profile Search</span>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                className="input-field flex-1"
+                placeholder="apify_api_..."
+                value={apifyKey}
+                onChange={e => {
+                  setApifyKey(e.target.value)
+                  setApifySaved(false)
+                }}
+                onFocus={e => {
+                  if (e.target.value.startsWith('•')) setApifyKey('')
+                }}
+              />
+              <button
+                className="btn-primary shrink-0"
+                onClick={handleSaveApifyKey}
+                disabled={apifySaving || !apifyKey.trim() || apifyKey.startsWith('•')}
+              >
+                {apifySaving ? 'Saving...' : apifySaved ? '✓ Saved' : 'Save'}
+              </button>
+            </div>
+            <p className="text-slate-500 text-xs mt-1.5">
+              Get key at{' '}
+              <button
+                className="text-blue-400 hover:underline"
+                onClick={() => window.api.openExternal('https://console.apify.com/account/integrations')}
+              >
+                console.apify.com
               </button>
             </p>
           </div>

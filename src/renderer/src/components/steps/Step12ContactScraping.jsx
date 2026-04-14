@@ -22,6 +22,8 @@ export default function Step12ContactScraping({ formData, update, onNext, onBack
         const inputs = {
             jobTitles: config.jobTitles,
             location: config.location,
+            useApify: config.useApify,
+            maxItemsPerCompany: config.maxResults || 3,
             leads: targetLeads
         }
 

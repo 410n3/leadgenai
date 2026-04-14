@@ -105,6 +105,7 @@ app.on('window-all-closed', () => {
 ipcMain.handle('check-credentials', async () => {
   const hasCredentials = credentialsExist()
   const hasApiKey = !!process.env.NVIDIA_API_KEY
+  const hasApifyKey = !!process.env.APIFY_API_KEY
   const userDataPath = app.getPath('userData')
   const useLocalMl = process.env.USE_LOCAL_ML === 'true'
   const localMlUrl = process.env.LOCAL_ML_URL || 'http://localhost:11434/v1'
@@ -113,6 +114,7 @@ ipcMain.handle('check-credentials', async () => {
   return {
     credentialsExist: hasCredentials,
     hasApiKey,
+    hasApifyKey,
     userDataPath,
     useLocalMl,
     localMlUrl,
@@ -161,7 +163,7 @@ ipcMain.handle('export-csv', async (_event, { leads }) => {
   if (canceled || !filePath) return { success: false }
 
   // Build CSV manually (simple)
-  const headers = ['Name', 'Category', 'Address', 'Phone', 'Website', 'Rating', 'Reviews', 'Tier', 'CIN', 'Paid-up Capital', 'MCA Status', 'Search Query', 'Decision Maker Name', 'Contact LinkedIn', 'Contact Verified']
+  const headers = ['Name', 'Category', 'Address', 'Phone', 'Website', 'Rating', 'Reviews', 'Tier', 'CIN', 'Paid-up Capital', 'MCA Status', 'Search Query', 'Decision Maker Name', 'Contact Email', 'Contact LinkedIn', 'Contact Verified']
   const rows = leads.map(l => [
     `"${(l.name || '').replace(/"/g, '""')}"`,
     `"${(l.category || '').replace(/"/g, '""')}"`,
@@ -176,6 +178,7 @@ ipcMain.handle('export-csv', async (_event, { leads }) => {
     `"${(l.mcaData?.mcaFound ? (l.mcaData.status || 'Active') : '').replace(/"/g, '""')}"`,
     `"${(l.searchQuery || '').replace(/"/g, '""')}"`,
     `"${(l.googleContacts ? l.googleContacts.map(c => c.name).filter(Boolean).join(', ') : '').replace(/"/g, '""')}"`,
+    `"${(l.googleContacts ? l.googleContacts.map(c => c.email).filter(Boolean).join(', ') : '').replace(/"/g, '""')}"`,
     `"${(l.googleContacts ? l.googleContacts.map(c => c.linkedinUrl).filter(Boolean).join(', ') : '').replace(/"/g, '""')}"`,
     `"${l.googleContacts && l.googleContacts.length > 0 ? (l.googleContacts.every(c => c.verified === true) ? 'Yes' : l.googleContacts.some(c => c.verified === true) ? 'Partial' : 'No') : ''}"`
   ])
@@ -193,11 +196,15 @@ ipcMain.handle('get-sheet-url', async () => {
 })
 
 ipcMain.handle('save-env', async (_event, params) => {
-  const { anthropicKey, USE_LOCAL_ML, LOCAL_ML_URL, LOCAL_ML_MODEL } = params
+  const { anthropicKey, apifyKey, USE_LOCAL_ML, LOCAL_ML_URL, LOCAL_ML_MODEL } = params
   const map = readEnvMap()
   if (anthropicKey !== undefined) {
     map.NVIDIA_API_KEY = anthropicKey
     process.env.NVIDIA_API_KEY = anthropicKey
+  }
+  if (apifyKey !== undefined) {
+    map.APIFY_API_KEY = apifyKey
+    process.env.APIFY_API_KEY = apifyKey
   }
 
   if (USE_LOCAL_ML !== undefined) {
