@@ -50,24 +50,35 @@ export function generateSearchQueries(params) {
   } = params
 
   const targets = hasCompanyList ? companies : companyTypes
-  const locationStr = [city, state].filter(Boolean).join(', ')
+  const locationParts = [district, city, state].filter(Boolean)
+  const locationStr = locationParts.join(', ')
   const queries = []
 
   for (const target of targets) {
-    if (pincodes.length > 0 && searchScope === 'narrow') {
-      // With pincodes: category in pincode place city state
+    if (searchScope === 'narrow' && pincodes.length > 0) {
+      // Narrow: category + pincode + district + city + state
       for (const pincode of pincodes) {
-        const parts = [target, 'in', pincode, district, city, state].filter(Boolean)
-        queries.push({ query: parts.join(' '), target, pincode, location: locationStr })
+        const parts = [target, pincode, district, city, state].filter(Boolean)
+        queries.push({ 
+          query: parts.join(' '), 
+          target, 
+          pincode, 
+          location: locationStr 
+        })
       }
     } else {
-      // Without pincodes: category in place city state
-      const parts = [target, 'in', district, city, state].filter(Boolean)
-      queries.push({ query: parts.join(' '), target, pincode: 'all', location: locationStr })
+      // Broader: company name + district + city + state (no pincode)
+      const parts = [target, district, city, state].filter(Boolean)
+      queries.push({ 
+        query: parts.join(' '), 
+        target, 
+        pincode: 'all', 
+        location: locationStr 
+      })
     }
   }
 
-  const summary = `${queries.length} search ${queries.length === 1 ? 'query' : 'queries'} for ${targets.length} target(s) in ${locationStr}.`
+  const summary = `${queries.length} search ${queries.length === 1 ? 'query' : 'queries'} for ${targets.length} target(s) in ${locationStr || 'specified area'}.`
   return { queries, summary }
 }
 
