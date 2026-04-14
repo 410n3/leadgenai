@@ -44,6 +44,10 @@
       "out/**/*",
       "resources/**/*"
     ],
+    "asarUnpack": [
+      "**/vosk-koffi/**",
+      "**/node_modules/vosk-koffi/**"
+    ],
     "extraResources": [
       {
         "from": "credentials",
